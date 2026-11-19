@@ -185,7 +185,7 @@
     if(!down && !held.has(id)) return;
     if(down) held.add(id); else held.delete(id);
     const keyCode=code==='Shift'?16:code==='Escape'?27:code.toUpperCase().charCodeAt(0);
-    window.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{
+    (canvas||document).dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{
       key:code==='Escape'?'Escape':code==='Shift'?'Shift':code,
       code:code==='Shift'?'ShiftLeft':code==='Escape'?'Escape':'Key'+code.toUpperCase(),
       keyCode,which:keyCode,bubbles:true,cancelable:true
