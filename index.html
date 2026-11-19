@@ -144,12 +144,15 @@
   </script>
 
 <style>
-@media (pointer:coarse), (max-width:800px) {
   html,body { margin:0!important; width:100%;height:100%;overflow:hidden!important;background:#000;touch-action:none; }
   #unity-container.unity-mobile { width:100vw!important;height:100dvh!important; }
   #unity-canvas.unity-mobile { width:100vw!important;height:100dvh!important;object-fit:contain;touch-action:none; }
   #unity-footer { display:none!important; }
   #batim-touch-controls { position:fixed;inset:0;z-index:99999;pointer-events:none;user-select:none;-webkit-user-select:none; }
+  #batim-toggle { position:absolute;right:14px;top:14px;pointer-events:auto;touch-action:manipulation;background:#171717ef;color:#fff;border:2px solid #ffffffbb;border-radius:8px;padding:10px 12px;font:bold 12px Arial;box-shadow:0 2px 8px #000; }
+  #batim-touch-controls.controls-off > :not(#batim-toggle) { display:none!important; }
+  #batim-touch-controls.controls-off { pointer-events:none; }
+  #batim-touch-controls.controls-off #batim-toggle { pointer-events:auto; }
   #batim-stick { position:absolute;left:22px;bottom:24px;width:132px;height:132px;border:2px solid #ffffff99;border-radius:50%;background:#17171788;pointer-events:auto;touch-action:none; }
   #batim-knob { position:absolute;width:54px;height:54px;left:37px;top:37px;border-radius:50%;background:#d7d0c2dd;border:2px solid #fff;box-shadow:0 2px 8px #000; }
   .batim-btn { position:absolute;pointer-events:auto;touch-action:none;border:2px solid #ffffffbb;border-radius:50%;background:#171717bb;color:#fff;font:bold 14px Arial;min-width:58px;height:58px;padding:0 8px;box-shadow:0 2px 8px #000; }
@@ -160,10 +163,9 @@
   #batim-sprint { right:112px;bottom:34px; }
   #batim-pause { right:18px;top:18px;min-width:48px;height:48px; }
   #batim-hint { position:absolute;left:50%;top:12px;transform:translateX(-50%);color:#fff;background:#0009;border-radius:8px;padding:6px 10px;font:12px Arial;white-space:nowrap; }
-}
-@media (pointer:fine) and (min-width:801px) { #batim-touch-controls { display:none!important; } }
 </style>
 <div id="batim-touch-controls" aria-label="Touch controls">
+  <button id="batim-toggle" type="button" aria-pressed="true">TOUCH: ON</button>
   <div id="batim-hint">MOVE · DRAG RIGHT SIDE TO LOOK</div>
   <div id="batim-stick"><div id="batim-knob"></div></div>
   <div id="batim-look" aria-label="Look around"></div>
@@ -176,6 +178,20 @@
 (function(){
   const root=document.getElementById('batim-touch-controls');
   if(!root) return;
+  const toggle=document.getElementById('batim-toggle');
+  const saved=localStorage.getItem('batimTouchControls');
+  if(saved==='off') root.classList.add('controls-off');
+  function syncToggle(){
+    const enabled=!root.classList.contains('controls-off');
+    toggle.textContent=enabled?'TOUCH: ON':'TOUCH: OFF';
+    toggle.setAttribute('aria-pressed',String(enabled));
+    localStorage.setItem('batimTouchControls',enabled?'on':'off');
+  }
+  toggle.addEventListener('click',()=>{
+    root.classList.toggle('controls-off');
+    syncToggle();
+  });
+  syncToggle();
   const canvas=document.getElementById('unity-canvas');
   const keyMap={up:'w',down:'s',left:'a',right:'d',use:'e',sprint:'Shift',pause:'Escape'};
   const held=new Set();
