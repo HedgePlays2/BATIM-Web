@@ -142,6 +142,101 @@
 
     document.body.appendChild(script);
   </script>
+
+<style>
+@media (pointer:coarse), (max-width:800px) {
+  html,body { margin:0!important; width:100%;height:100%;overflow:hidden!important;background:#000;touch-action:none; }
+  #unity-container.unity-mobile { width:100vw!important;height:100dvh!important; }
+  #unity-canvas.unity-mobile { width:100vw!important;height:100dvh!important;object-fit:contain;touch-action:none; }
+  #unity-footer { display:none!important; }
+  #batim-touch-controls { position:fixed;inset:0;z-index:99999;pointer-events:none;user-select:none;-webkit-user-select:none; }
+  #batim-stick { position:absolute;left:22px;bottom:24px;width:132px;height:132px;border:2px solid #ffffff99;border-radius:50%;background:#17171788;pointer-events:auto;touch-action:none; }
+  #batim-knob { position:absolute;width:54px;height:54px;left:37px;top:37px;border-radius:50%;background:#d7d0c2dd;border:2px solid #fff;box-shadow:0 2px 8px #000; }
+  .batim-btn { position:absolute;pointer-events:auto;touch-action:none;border:2px solid #ffffffbb;border-radius:50%;background:#171717bb;color:#fff;font:bold 14px Arial;min-width:58px;height:58px;padding:0 8px;box-shadow:0 2px 8px #000; }
+  .batim-btn:active { background:#8d251fdd;transform:scale(.96); }
+  #batim-look { position:absolute;right:0;top:12%;width:48%;height:48%;pointer-events:auto;touch-action:none; }
+  #batim-attack { right:24px;bottom:34px;width:72px;height:72px;background:#7b211dcc; }
+  #batim-use { right:108px;bottom:112px; }
+  #batim-sprint { right:112px;bottom:34px; }
+  #batim-pause { right:18px;top:18px;min-width:48px;height:48px; }
+  #batim-hint { position:absolute;left:50%;top:12px;transform:translateX(-50%);color:#fff;background:#0009;border-radius:8px;padding:6px 10px;font:12px Arial;white-space:nowrap; }
+}
+@media (pointer:fine) and (min-width:801px) { #batim-touch-controls { display:none!important; } }
+</style>
+<div id="batim-touch-controls" aria-label="Touch controls">
+  <div id="batim-hint">MOVE · DRAG RIGHT SIDE TO LOOK</div>
+  <div id="batim-stick"><div id="batim-knob"></div></div>
+  <div id="batim-look" aria-label="Look around"></div>
+  <button class="batim-btn" id="batim-attack" type="button">ATTACK</button>
+  <button class="batim-btn" id="batim-use" type="button">E · USE</button>
+  <button class="batim-btn" id="batim-sprint" type="button">RUN</button>
+  <button class="batim-btn" id="batim-pause" type="button">Ⅱ</button>
+</div>
+<script>
+(function(){
+  const root=document.getElementById('batim-touch-controls');
+  if(!root) return;
+  const canvas=document.getElementById('unity-canvas');
+  const keyMap={up:'w',down:'s',left:'a',right:'d',use:'e',sprint:'Shift',pause:'Escape'};
+  const held=new Set();
+  function key(code,down){
+    const id=code.toLowerCase();
+    if(down && held.has(id)) return;
+    if(!down && !held.has(id)) return;
+    if(down) held.add(id); else held.delete(id);
+    const keyCode=code==='Shift'?16:code==='Escape'?27:code.toUpperCase().charCodeAt(0);
+    window.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{
+      key:code==='Escape'?'Escape':code==='Shift'?'Shift':code,
+      code:code==='Shift'?'ShiftLeft':code==='Escape'?'Escape':'Key'+code.toUpperCase(),
+      keyCode,which:keyCode,bubbles:true,cancelable:true
+    }));
+  }
+  function releaseAll(){ [...held].forEach(k=>key(k,false)); }
+  window.addEventListener('blur',releaseAll);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAll();});
+  const stick=document.getElementById('batim-stick'),knob=document.getElementById('batim-knob');
+  let stickId=null,center={x:0,y:0};
+  function moveStick(e){
+    const dx=e.clientX-center.x,dy=e.clientY-center.y;
+    const max=42,len=Math.hypot(dx,dy),scale=len>max?max/len:1;
+    const x=dx*scale,y=dy*scale;
+    knob.style.transform='translate('+x+'px,'+y+'px)';
+    const dead=13;
+    key('w',y < -dead);key('s',y > dead);key('a',x < -dead);key('d',x > dead);
+  }
+  stick.addEventListener('pointerdown',e=>{
+    e.preventDefault();stick.setPointerCapture(e.pointerId);stickId=e.pointerId;
+    const r=stick.getBoundingClientRect();center={x:r.left+r.width/2,y:r.top+r.height/2};moveStick(e);
+  });
+  stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)moveStick(e);});
+  function endStick(e){if(e.pointerId!==stickId)return;stickId=null;knob.style.transform='';['w','a','s','d'].forEach(k=>key(k,false));}
+  stick.addEventListener('pointerup',endStick);stick.addEventListener('pointercancel',endStick);
+  const look=document.getElementById('batim-look');
+  let lookId=null,last={x:0,y:0};
+  look.addEventListener('pointerdown',e=>{e.preventDefault();look.setPointerCapture(e.pointerId);lookId=e.pointerId;last={x:e.clientX,y:e.clientY};});
+  look.addEventListener('pointermove',e=>{
+    if(e.pointerId!==lookId)return;
+    const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};
+    if(!dx&&!dy)return;
+    const target=canvas||document;
+    target.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,cancelable:true,view:window,clientX:e.clientX,clientY:e.clientY,movementX:dx*2,movementY:dy*2}));
+    document.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,cancelable:true,view:window,clientX:e.clientX,clientY:e.clientY,movementX:dx*2,movementY:dy*2}));
+  });
+  function endLook(e){if(e.pointerId===lookId)lookId=null;}
+  look.addEventListener('pointerup',endLook);look.addEventListener('pointercancel',endLook);
+  function bindHold(id,code){
+    const el=document.getElementById(id);
+    el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);key(code,true);});
+    ['pointerup','pointercancel','lostpointercapture'].forEach(type=>el.addEventListener(type,()=>key(code,false)));
+  }
+  bindHold('batim-use','e');bindHold('batim-sprint','Shift');
+  const attack=document.getElementById('batim-attack');
+  attack.addEventListener('pointerdown',e=>{e.preventDefault();attack.setPointerCapture(e.pointerId);(canvas||document).dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,buttons:1}));});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(t=>attack.addEventListener(t,()=>{(canvas||document).dispatchEvent(new MouseEvent('mouseup',{bubbles:true,button:0,buttons:0}));}));
+  bindHold('batim-pause','Escape');
+})();
+</script>
+
 </body>
 
 </html>
