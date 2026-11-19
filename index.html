@@ -159,6 +159,7 @@
   .batim-btn:active { background:#8d251fdd;transform:scale(.96); }
   #batim-look { position:absolute;right:0;top:12%;width:48%;height:48%;pointer-events:auto;touch-action:none; }
   #batim-attack { right:24px;bottom:34px;width:72px;height:72px;background:#7b211dcc; }
+  #batim-jump { right:24px;bottom:122px;width:66px;height:66px;background:#245b9dcc; }
   #batim-use { right:108px;bottom:112px; }
   #batim-sprint { right:112px;bottom:34px; }
   #batim-pause { right:18px;top:18px;min-width:48px;height:48px; }
@@ -170,6 +171,7 @@
   <div id="batim-stick"><div id="batim-knob"></div></div>
   <div id="batim-look" aria-label="Look around"></div>
   <button class="batim-btn" id="batim-attack" type="button">ATTACK</button>
+  <button class="batim-btn" id="batim-jump" type="button">JUMP</button>
   <button class="batim-btn" id="batim-use" type="button">E · USE</button>
   <button class="batim-btn" id="batim-sprint" type="button">RUN</button>
   <button class="batim-btn" id="batim-pause" type="button">Ⅱ</button>
@@ -200,10 +202,10 @@
     if(down && held.has(id)) return;
     if(!down && !held.has(id)) return;
     if(down) held.add(id); else held.delete(id);
-    const keyCode=code==='Shift'?16:code==='Escape'?27:code.toUpperCase().charCodeAt(0);
+    const keyCode=code==='Shift'?16:code==='Escape'?27:code==='Space'?32:code.toUpperCase().charCodeAt(0);
     (canvas||document).dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{
-      key:code==='Escape'?'Escape':code==='Shift'?'Shift':code,
-      code:code==='Shift'?'ShiftLeft':code==='Escape'?'Escape':'Key'+code.toUpperCase(),
+      key:code==='Escape'?'Escape':code==='Shift'?'Shift':code==='Space'?' ':code,
+      code:code==='Shift'?'ShiftLeft':code==='Escape'?'Escape':code==='Space'?'Space':'Key'+code.toUpperCase(),
       keyCode,which:keyCode,bubbles:true,cancelable:true
     }));
   }
@@ -244,7 +246,7 @@
     el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);key(code,true);});
     ['pointerup','pointercancel','lostpointercapture'].forEach(type=>el.addEventListener(type,()=>key(code,false)));
   }
-  bindHold('batim-use','e');bindHold('batim-sprint','Shift');
+  bindHold('batim-use','e');bindHold('batim-sprint','Shift');bindHold('batim-jump','Space');
   const attack=document.getElementById('batim-attack');
   attack.addEventListener('pointerdown',e=>{e.preventDefault();attack.setPointerCapture(e.pointerId);(canvas||document).dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,buttons:1}));});
   ['pointerup','pointercancel','lostpointercapture'].forEach(t=>attack.addEventListener(t,()=>{(canvas||document).dispatchEvent(new MouseEvent('mouseup',{bubbles:true,button:0,buttons:0}));}));
